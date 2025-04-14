@@ -1,7 +1,7 @@
 # OTP Server
 
 [!CAUTION]
-This server was built entirely by AI. I have not yet verified how it has implemented the RFCs yet. Use are your own risk!
+This server was built entirely by AI. I have not yet verified how it has implemented the RFCs yet. Use at your own risk!
 
 A horizontally scalable OTP (One-Time Password) server written in Rust, following the [RFC4226](https://datatracker.ietf.org/doc/html/rfc4226) (HOTP) and [RFC6238](https://datatracker.ietf.org/doc/html/rfc6238) (TOTP) standards.
 
