@@ -1,0 +1,30 @@
+[package]
+name = "otp"
+version = "0.1.0"
+edition = "2024"
+description = "Horizontally scalable OTP server"
+authors = ["OTP Team"]
+
+[dependencies]
+# Cryptographic dependencies
+hmac = "0.12"
+sha2 = "0.10"
+data-encoding = "2.9.0"
+rand = "0.8"
+hex = "0.4"
+
+# Time handling
+time = "0.3"
+
+# Web server
+actix-web = "4.4"
+tokio = { version = "1.34", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Logging and configuration
+env_logger = "0.10"
+dotenv = "0.15"
+log = "0.4"
