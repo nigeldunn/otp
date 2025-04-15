@@ -1,0 +1,12 @@
+apiVersion: v2
+name: otp-server
+description: A Helm chart for the OTP Server
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - otp
+  - authentication
+  - security
+maintainers:
+  - name: OTP Team

@@ -18,9 +18,11 @@ A horizontally scalable OTP (One-Time Password) server written in Rust, followin
 
 ### Prerequisites
 
-- Rust and Cargo (latest stable version)
+- Rust and Cargo (latest stable version) for local development
+- Docker for containerized deployment
+- Kubernetes and Helm for orchestrated deployment
 
-### Installation
+### Local Installation
 
 1. Clone the repository:
    ```
@@ -36,6 +38,45 @@ A horizontally scalable OTP (One-Time Password) server written in Rust, followin
 3. Run the server:
    ```
    ./target/release/otp
+   ```
+
+### Docker Deployment
+
+1. Build the Docker image:
+   ```
+   docker build -t otp-server:latest .
+   ```
+
+2. Run the container:
+   ```
+   docker run -p 8080:8080 otp-server:latest
+   ```
+
+3. Or use the provided script to build and push to a registry:
+   ```
+   ./build-and-push.sh --registry your-registry --tag v1.0.0
+   ```
+
+### Kubernetes Deployment with Helm
+
+1. Install the Helm chart:
+   ```
+   helm install otp-server ./helm/otp-server
+   ```
+
+2. Customize the deployment:
+   ```
+   helm install otp-server ./helm/otp-server --set service.type=LoadBalancer
+   ```
+
+3. Upgrade an existing deployment:
+   ```
+   helm upgrade otp-server ./helm/otp-server --set replicaCount=3
+   ```
+
+4. Or use the provided script for easier deployment:
+   ```
+   ./deploy-helm.sh --namespace otp --set image.repository=your-registry/otp-server --set image.tag=v1.0.0
    ```
 
 ### Configuration
