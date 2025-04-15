@@ -57,6 +57,43 @@ A horizontally scalable OTP (One-Time Password) server written in Rust, followin
    ./build-and-push.sh --registry your-registry --tag v1.0.0
    ```
 
+### Docker Compose Deployment
+
+For a complete deployment with Redis for OTP storage:
+
+1. Start the services:
+   ```
+   ./run-docker-compose.sh
+   ```
+
+2. Start in detached mode:
+   ```
+   ./run-docker-compose.sh --detach
+   ```
+
+3. Stop and remove the services:
+   ```
+   ./run-docker-compose.sh --down
+   ```
+
+4. Rebuild the services:
+   ```
+   ./run-docker-compose.sh --build
+   ```
+
+The script automatically detects whether you have the standalone `docker-compose` command or the newer `docker compose` plugin installed, making it compatible with all Docker installations.
+
+The Docker Compose setup includes:
+- OTP server with Redis storage enabled
+- Redis instance with data persistence
+- Proper networking between services
+
+5. Test the Docker Compose deployment:
+   ```
+   ./test-docker-compose.sh
+   ```
+   This script will verify that the OTP server is running correctly with Redis storage by testing all API endpoints and verifying OTP reuse prevention.
+
 ### Kubernetes Deployment with Helm
 
 1. Install the Helm chart:
@@ -176,6 +213,35 @@ POST /api/otp/verify
   "valid": true
 }
 ```
+
+## Development
+
+### Continuous Integration and Deployment
+
+This project uses GitHub Actions for CI/CD:
+
+#### CI Workflow (`.github/workflows/ci.yml`)
+- Running tests on every push and pull request
+- Linting with Clippy and checking code formatting
+- Building the project and uploading artifacts
+- Building the Docker image
+
+#### Release Workflow (`.github/workflows/release.yml`)
+- Triggered when a new tag is pushed
+- Creates a GitHub release
+- Builds binaries for multiple platforms (Linux, macOS, both x86_64 and ARM64)
+- Builds and pushes Docker images to GitHub Container Registry
+
+### Dependency Management
+
+This project uses GitHub's Dependabot to keep dependencies up to date. The configuration is in `.github/dependabot.yml` and includes:
+
+- Weekly updates for Rust dependencies (Cargo)
+- Weekly updates for Docker images
+- Monthly updates for GitHub Actions
+- Weekly updates for Helm charts
+
+Dependabot will automatically create pull requests when new versions of dependencies are available.
 
 ## License
 

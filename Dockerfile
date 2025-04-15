@@ -1,10 +1,10 @@
 # Build stage
-FROM rust:1.76-slim as builder
+FROM rust:1.81-slim AS builder
 
 WORKDIR /usr/src/otp
 
-# Copy over the manifests
-COPY Cargo.toml Cargo.lock ./
+# Copy over the manifest
+COPY Cargo.toml ./
 
 # Create a dummy main.rs to build dependencies
 RUN mkdir -p src && \
@@ -21,9 +21,9 @@ RUN cargo build --release
 # Runtime stage
 FROM debian:bookworm-slim
 
-# Install necessary runtime dependencies
+# Install necessary runtime dependencies and debugging tools
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates && \
+    apt-get install -y --no-install-recommends ca-certificates strace procps && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -50,5 +50,5 @@ ENV STORAGE_CLEANUP_INTERVAL=60
 ENV STORAGE_TYPE=redis
 ENV REDIS_URL=redis://redis:6379
 
-# Run the application
+# Run the application with proper output
 CMD ["./otp"]
