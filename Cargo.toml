@@ -15,7 +15,7 @@ hex = "0.4"
 
 # Storage
 redis = { version = "0.24", features = ["tokio-comp"] }
-dashmap = "5.5"  # Keep for local fallback
+dashmap = "6.1"  # Keep for local fallback
 async-trait = "0.1"
 
 # Time handling
