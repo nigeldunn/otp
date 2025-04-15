@@ -10,3 +10,9 @@ keywords:
   - security
 maintainers:
   - name: OTP Team
+
+dependencies:
+  - name: redis
+    version: "17.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled

@@ -24,7 +24,13 @@ async fn main() -> std::io::Result<()> {
     let server_address = config.server_address();
     
     // Initialize OTP storage
-    let otp_storage = OtpStorage::new(config.storage_cleanup_interval);
+    let otp_storage = match OtpStorage::new(&config).await {
+        Ok(storage) => storage,
+        Err(e) => {
+            log::error!("Failed to initialize OTP storage: {}", e);
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, e));
+        }
+    };
     
     log::info!("Starting OTP server on {}", server_address);
     

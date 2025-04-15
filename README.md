@@ -89,6 +89,25 @@ The server can be configured using environment variables or a `.env` file:
 - `OTP_LENGTH`: Length of generated OTP codes (default: 6)
 - `OTP_EXPIRY_SECONDS`: Validity period of OTP codes in seconds (default: 30)
 - `STORAGE_CLEANUP_INTERVAL`: Interval in seconds to clean up expired OTPs (default: 60)
+- `STORAGE_TYPE`: Storage backend to use (options: inmemory, redis; default: inmemory)
+- `REDIS_URL`: Redis connection URL (default: redis://127.0.0.1:6379)
+
+### Storage Options
+
+The OTP server supports two storage backends for tracking used OTPs:
+
+1. **In-Memory Storage** (default)
+   - Simple and fast, but not suitable for horizontal scaling
+   - OTPs are stored in memory and not shared between instances
+   - Good for development or single-instance deployments
+
+2. **Redis Storage**
+   - Recommended for production and multi-instance deployments
+   - OTPs are stored in Redis and shared between all instances
+   - Provides true "one-time" behavior in a distributed environment
+   - Automatically handles expiration of used OTPs
+
+When deploying with Kubernetes, the Helm chart includes a Redis instance by default.
 
 ## API Endpoints
 

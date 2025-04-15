@@ -46,6 +46,16 @@ spec:
               value: "{{ .Values.otpServer.otpExpirySeconds }}"
             - name: STORAGE_CLEANUP_INTERVAL
               value: "{{ .Values.otpServer.storageCleanupInterval }}"
+            - name: STORAGE_TYPE
+              value: "{{ .Values.otpServer.storage.type }}"
+            - name: REDIS_URL
+              value: {{ if .Values.redis.enabled -}}
+                      "redis://{{ .Release.Name }}-redis-master:6379"
+                    {{- else if .Values.externalRedis.enabled -}}
+                      "redis://{{ .Values.externalRedis.host }}:{{ .Values.externalRedis.port }}"
+                    {{- else -}}
+                      "redis://localhost:6379"
+                    {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

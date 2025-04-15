@@ -87,3 +87,23 @@ otpServer:
   otpLength: 6
   otpExpirySeconds: 30
   storageCleanupInterval: 60
+  storage:
+    type: "redis"  # Options: inmemory, redis
+
+# Redis configuration
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: false
+  replica:
+    replicaCount: 0
+
+# External Redis configuration (if not using the bundled Redis)
+externalRedis:
+  enabled: false
+  host: "redis"
+  port: 6379

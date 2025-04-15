@@ -9,6 +9,14 @@ pub struct Config {
     pub otp_length: usize,
     pub otp_expiry_seconds: u64,
     pub storage_cleanup_interval: u64,
+    pub storage_type: StorageType,
+    pub redis_url: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum StorageType {
+    InMemory,
+    Redis,
 }
 
 impl Default for Config {
@@ -20,6 +28,8 @@ impl Default for Config {
             otp_length: 6,
             otp_expiry_seconds: 30,
             storage_cleanup_interval: 60, // Clean up every minute
+            storage_type: StorageType::InMemory,
+            redis_url: "redis://127.0.0.1:6379".to_string(),
         }
     }
 }
@@ -46,6 +56,14 @@ impl Config {
             .unwrap_or_else(|_| "60".to_string())
             .parse()
             .unwrap_or(60);
+        
+        // Determine storage type
+        let storage_type = match env::var("STORAGE_TYPE").unwrap_or_else(|_| "inmemory".to_string()).to_lowercase().as_str() {
+            "redis" => StorageType::Redis,
+            _ => StorageType::InMemory,
+        };
+        
+        let redis_url = env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
         Self {
             server_host,
@@ -54,6 +72,8 @@ impl Config {
             otp_length,
             otp_expiry_seconds,
             storage_cleanup_interval,
+            storage_type,
+            redis_url,
         }
     }
 
