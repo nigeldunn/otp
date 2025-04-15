@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::error::{AppError, AppResult};
 use crate::otp::totp::Totp;
+use crate::storage::OtpStorage;
 use actix_web::{web, HttpResponse};
 use data_encoding::BASE32;
 use rand::Rng;
@@ -82,8 +83,15 @@ pub async fn generate_otp(
 /// Verify an OTP against the given secret
 pub async fn verify_otp(
     config: web::Data<Arc<Config>>,
+    storage: web::Data<Arc<OtpStorage>>,
     req: web::Json<VerifyOtpRequest>,
 ) -> AppResult<HttpResponse> {
+    // Check if OTP has been used before
+    if storage.is_used(&req.otp) {
+        log::warn!("OTP reuse attempt detected: {}", req.otp);
+        return Ok(HttpResponse::Ok().json(VerifyOtpResponse { valid: false }));
+    }
+    
     // Decode the secret from hex
     let secret = hex::decode(&req.secret)
         .map_err(|e| AppError::ValidationError(format!("Invalid secret: {}", e)))?;
@@ -97,6 +105,12 @@ pub async fn verify_otp(
     
     // Verify the OTP
     let valid = totp.verify(&req.otp)?;
+    
+    // If OTP is valid, mark it as used
+    if valid {
+        storage.mark_used(&req.otp, config.otp_expiry_seconds);
+        log::debug!("OTP marked as used: {}", req.otp);
+    }
     
     let response = VerifyOtpResponse { valid };
     

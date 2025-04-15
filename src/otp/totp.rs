@@ -91,7 +91,7 @@ mod tests {
     #[test]
     fn test_totp_generation() {
         let secret = b"12345678901234567890".to_vec();
-        let totp = Totp::new(secret, 6, 30);
+        let totp = Totp::new(secret.clone(), 6, 30);
         
         // Test with specific timestamps
         let test_vectors = [
@@ -111,7 +111,7 @@ mod tests {
     #[test]
     fn test_totp_verification() {
         let secret = b"12345678901234567890".to_vec();
-        let totp = Totp::new(secret, 6, 30);
+        let totp = Totp::new(secret.clone(), 6, 30);
         
         assert!(totp.verify_at("287082", 59).unwrap());
         assert!(totp.verify_at("081804", 1111111109).unwrap());

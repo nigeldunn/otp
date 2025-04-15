@@ -58,6 +58,22 @@ else
   echo -e "\nOTP Verification: ${RED}Failed${NC}"
 fi
 
+# Try to reuse the same OTP
+echo -e "\n${BLUE}Testing OTP Reuse Prevention${NC}"
+REUSE_RESPONSE=$(curl -s -X POST "${BASE_URL}/otp/verify" \
+  -H "Content-Type: application/json" \
+  -d "{\"secret\": \"$SECRET\", \"otp\": \"$OTP\"}")
+echo "$REUSE_RESPONSE" | jq
+
+# Check if OTP reuse is rejected
+REUSE_VALID=$(echo "$REUSE_RESPONSE" | jq -r '.valid')
+if [ "$REUSE_VALID" = "false" ]; then
+  echo -e "\nOTP Reuse Prevention: ${GREEN}Success${NC}"
+else
+  echo -e "\nOTP Reuse Prevention: ${RED}Failed${NC}"
+fi
+
+
 # Test with invalid OTP
 echo -e "\n${BLUE}Testing with Invalid OTP${NC}"
 INVALID_OTP="invalid"

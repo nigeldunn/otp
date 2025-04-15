@@ -9,6 +9,7 @@ A horizontally scalable OTP (One-Time Password) server written in Rust, followin
 
 - Generates 6-character long, alphanumeric one-time passwords
 - Supports both HOTP (HMAC-based One-Time Password) and TOTP (Time-based One-Time Password)
+- Prevents OTP reuse with an in-memory storage mechanism
 - RESTful API for easy integration
 - Horizontally scalable architecture
 - Configurable via environment variables
@@ -46,6 +47,7 @@ The server can be configured using environment variables or a `.env` file:
 - `LOG_LEVEL`: Logging level (default: info)
 - `OTP_LENGTH`: Length of generated OTP codes (default: 6)
 - `OTP_EXPIRY_SECONDS`: Validity period of OTP codes in seconds (default: 30)
+- `STORAGE_CLEANUP_INTERVAL`: Interval in seconds to clean up expired OTPs (default: 60)
 
 ## API Endpoints
 

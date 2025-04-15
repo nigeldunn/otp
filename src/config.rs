@@ -8,6 +8,7 @@ pub struct Config {
     pub log_level: String,
     pub otp_length: usize,
     pub otp_expiry_seconds: u64,
+    pub storage_cleanup_interval: u64,
 }
 
 impl Default for Config {
@@ -18,6 +19,7 @@ impl Default for Config {
             log_level: "info".to_string(),
             otp_length: 6,
             otp_expiry_seconds: 30,
+            storage_cleanup_interval: 60, // Clean up every minute
         }
     }
 }
@@ -40,6 +42,10 @@ impl Config {
             .unwrap_or_else(|_| "30".to_string())
             .parse()
             .unwrap_or(30);
+        let storage_cleanup_interval = env::var("STORAGE_CLEANUP_INTERVAL")
+            .unwrap_or_else(|_| "60".to_string())
+            .parse()
+            .unwrap_or(60);
 
         Self {
             server_host,
@@ -47,6 +53,7 @@ impl Config {
             log_level,
             otp_length,
             otp_expiry_seconds,
+            storage_cleanup_interval,
         }
     }
 
