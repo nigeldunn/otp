@@ -87,8 +87,6 @@ otpServer:
   otpLength: 6
   otpExpirySeconds: 30
   storageCleanupInterval: 60
-  storage:
-    type: "redis"  # Options: inmemory, redis
 
 # Redis configuration
 redis:

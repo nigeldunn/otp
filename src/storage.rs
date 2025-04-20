@@ -21,72 +21,9 @@ pub struct OtpStorage;
 impl OtpStorage {
     /// Create a new OTP storage backend based on configuration
     pub async fn new(config: &Config) -> Result<Arc<dyn OtpStore>, String> {
-        match config.storage_type {
-            StorageType::InMemory => {
-                log::info!("Using in-memory storage for OTPs");
-                Ok(Arc::new(InMemoryStore::new(config.storage_cleanup_interval)))
-            },
-            StorageType::Redis => {
-                log::info!("Using Redis storage for OTPs at {}", config.redis_url);
-                match RedisStore::new(&config.redis_url).await {
-                    Ok(store) => Ok(Arc::new(store)),
-                    Err(e) => {
-                        log::warn!("Failed to connect to Redis: {}. Falling back to in-memory storage", e);
-                        Ok(Arc::new(InMemoryStore::new(config.storage_cleanup_interval)))
-                    }
-                }
-            }
-        }
-    }
-}
-
-/// In-memory storage for used OTPs
-pub struct InMemoryStore {
-    /// Map of used OTPs with their expiration time
-    used_otps: DashMap<String, Instant>,
-    /// Cleanup interval in seconds
-    cleanup_interval: u64,
-}
-
-impl InMemoryStore {
-    /// Create a new in-memory OTP storage
-    pub fn new(cleanup_interval: u64) -> Self {
-        let store = Self {
-            used_otps: DashMap::new(),
-            cleanup_interval,
-        };
-        
-        // Start background cleanup task
-        Self::start_cleanup_task(store.used_otps.clone(), cleanup_interval);
-        
-        store
-    }
-    
-    /// Start a background task to clean up expired OTPs
-    fn start_cleanup_task(used_otps: DashMap<String, Instant>, cleanup_interval: u64) {
-        tokio::spawn(async move {
-            let mut interval = time::interval(Duration::from_secs(cleanup_interval));
-            
-            loop {
-                interval.tick().await;
-                let now = Instant::now();
-                used_otps.retain(|_, expiry| *expiry > now);
-                log::debug!("Cleaned up expired OTPs from in-memory storage");
-            }
-        });
-    }
-}
-
-#[async_trait::async_trait]
-impl OtpStore for InMemoryStore {
-    async fn mark_used(&self, otp: &str, expiry_seconds: u64) -> Result<(), String> {
-        let expiry = Instant::now() + Duration::from_secs(expiry_seconds);
-        self.used_otps.insert(otp.to_string(), expiry);
-        Ok(())
-    }
-    
-    async fn is_used(&self, otp: &str) -> Result<bool, String> {
-        Ok(self.used_otps.contains_key(otp))
+        log::info!("Using Redis storage for OTPs at {}", config.redis_url);
+        let store = RedisStore::new(&config.redis_url).await?;
+        Ok(Arc::new(store))
     }
 }
 
@@ -96,22 +33,54 @@ pub struct RedisStore {
 }
 
 impl RedisStore {
-    /// Create a new Redis OTP storage
+    /// Create a new Redis OTP storage with retry logic
     pub async fn new(redis_url: &str) -> Result<Self, String> {
+        // Create Redis client
         let client = RedisClient::open(redis_url)
             .map_err(|e| format!("Failed to create Redis client: {}", e))?;
         
-        // Test connection
-        let mut conn = client.get_async_connection()
-            .await
-            .map_err(|e| format!("Failed to connect to Redis: {}", e))?;
+        // Retry connection with exponential backoff
+        let mut retry_count = 0;
+        let max_retries = 5;
+        let mut backoff_ms = 1000; // Start with 1 second
         
-        let _: () = redis::cmd("PING")
-            .query_async(&mut conn)
-            .await
-            .map_err(|e| format!("Failed to ping Redis: {}", e))?;
-        
-        Ok(Self { client })
+        loop {
+            log::info!("Attempting to connect to Redis (attempt {}/{})", retry_count + 1, max_retries);
+            
+            match client.get_async_connection().await {
+                Ok(mut conn) => {
+                    // Test connection with PING
+                    match redis::cmd("PING").query_async::<_, ()>(&mut conn).await {
+                        Ok(_) => {
+                            log::info!("Successfully connected to Redis");
+                            return Ok(Self { client });
+                        },
+                        Err(e) => {
+                            log::warn!("Failed to ping Redis: {}", e);
+                            if retry_count >= max_retries {
+                                return Err(format!("Failed to ping Redis after {} attempts: {}", max_retries, e));
+                            }
+                        }
+                    }
+                },
+                Err(e) => {
+                    log::warn!("Failed to connect to Redis: {}", e);
+                    if retry_count >= max_retries {
+                        return Err(format!("Failed to connect to Redis after {} attempts: {}", max_retries, e));
+                    }
+                }
+            }
+            
+            // Increment retry count
+            retry_count += 1;
+            
+            // Sleep with exponential backoff
+            log::info!("Waiting {}ms before retrying...", backoff_ms);
+            time::sleep(Duration::from_millis(backoff_ms)).await;
+            
+            // Double the backoff time for next retry (exponential backoff)
+            backoff_ms = std::cmp::min(backoff_ms * 2, 30000); // Cap at 30 seconds
+        }
     }
 }
 

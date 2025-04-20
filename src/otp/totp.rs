@@ -110,15 +110,22 @@ mod tests {
 
     #[test]
     fn test_totp_verification() {
-        let secret = b"12345678901234567890".to_vec();
-        let totp = Totp::new(secret.clone(), 6, 30);
+        // Test basic verification
+        let secret1 = b"12345678901234567890".to_vec();
+        let totp = Totp::new(secret1, 6, 30);
         
         assert!(totp.verify_at("287082", 59).unwrap());
         assert!(totp.verify_at("081804", 1111111109).unwrap());
-        assert!(!totp.verify_at("081804", 1111111139).unwrap()); // 30 seconds later
+        assert!(!totp.verify_at("081804", 1111111169).unwrap()); // 60 seconds later, outside default skew
         
         // Test with skew
-        let totp_with_skew = Totp::new(secret, 6, 30).with_skew(1);
+        let secret2 = b"12345678901234567890".to_vec();
+        let totp_with_skew = Totp::new(secret2, 6, 30).with_skew(1);
         assert!(totp_with_skew.verify_at("081804", 1111111139).unwrap()); // 30 seconds later, within skew
+        
+        // Test without skew
+        let secret3 = b"12345678901234567890".to_vec();
+        let totp_no_skew = Totp::new(secret3, 6, 30).with_skew(0);
+        assert!(!totp_no_skew.verify_at("081804", 1111111139).unwrap()); // 30 seconds later, outside skew
     }
 }

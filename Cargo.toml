@@ -8,6 +8,7 @@ authors = ["OTP Team"]
 [dependencies]
 # Cryptographic dependencies
 hmac = "0.12"
+sha1 = "0.10"
 sha2 = "0.10"
 data-encoding = "2.9.0"
 rand = "0.8"

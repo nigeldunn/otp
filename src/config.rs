@@ -15,7 +15,6 @@ pub struct Config {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum StorageType {
-    InMemory,
     Redis,
 }
 
@@ -28,7 +27,7 @@ impl Default for Config {
             otp_length: 6,
             otp_expiry_seconds: 30,
             storage_cleanup_interval: 60, // Clean up every minute
-            storage_type: StorageType::InMemory,
+            storage_type: StorageType::Redis,
             redis_url: "redis://127.0.0.1:6379".to_string(),
         }
     }
@@ -57,11 +56,8 @@ impl Config {
             .parse()
             .unwrap_or(60);
         
-        // Determine storage type
-        let storage_type = match env::var("STORAGE_TYPE").unwrap_or_else(|_| "inmemory".to_string()).to_lowercase().as_str() {
-            "redis" => StorageType::Redis,
-            _ => StorageType::InMemory,
-        };
+        // Always use Redis storage
+        let storage_type = StorageType::Redis;
         
         let redis_url = env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 

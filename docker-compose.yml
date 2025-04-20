@@ -2,40 +2,31 @@ version: '3.8'
 
 services:
   otp-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
+    container_name: otp_server
     ports:
-      - "8081:8080"
+      - "8080:8080" # Map host port 8080 to container port 8080
     environment:
-      - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=8080
-      - LOG_LEVEL=debug
-      - OTP_LENGTH=6
-      - OTP_EXPIRY_SECONDS=30
-      - STORAGE_CLEANUP_INTERVAL=60
-      - STORAGE_TYPE=redis
-      - REDIS_URL=redis://redis:6379
+      # Point to the redis service within the docker network
+      REDIS_URL: redis://redis:6379
+      # Optional: Override other config values via environment variables if needed
+      SERVER_HOST: 0.0.0.0 # Bind to all interfaces within the container
+      SERVER_PORT: 8080
+      # LOG_LEVEL: debug
     depends_on:
       - redis
-    restart: unless-stopped
     networks:
-      - otp-network
+      - otp-net
+    restart: unless-stopped
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine # Use a specific alpine version for smaller size
+    container_name: otp_redis
     ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    command: redis-server --appendonly yes
-    restart: unless-stopped
+      - "6379:6379" # Optional: Expose Redis port to host for debugging/external access
     networks:
-      - otp-network
-
+      - otp-net
+    restart: unless-stopped
 networks:
-  otp-network:
-    driver: bridge
-
-volumes:
-  redis-data:
+  otp-net:
+    driver: bridge # Use the default bridge driver

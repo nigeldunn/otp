@@ -1,9 +1,9 @@
 use crate::error::{AppError, AppResult};
 use hmac::{Hmac, Mac};
-use sha2::Sha256;
+use sha1::Sha1;
 use std::fmt;
 
-type HmacSha256 = Hmac<Sha256>;
+type HmacSha1 = Hmac<Sha1>;
 
 /// HOTP (HMAC-based One-Time Password) implementation based on RFC4226
 pub struct Hotp {
@@ -15,9 +15,18 @@ pub struct Hotp {
 impl Hotp {
     /// Create a new HOTP instance with the given secret and configuration
     pub fn new(secret: Vec<u8>, digits: usize) -> Self {
-        // Default to alphanumeric characters (36 characters: 0-9, a-z)
-        let alphabet = "0123456789abcdefghijklmnopqrstuvwxyz".to_string();
+        // Default to numeric characters (0-9) for compatibility with standard OTP implementations
+        let alphabet = "0123456789".to_string();
         
+        Self {
+            secret,
+            digits,
+            alphabet,
+        }
+    }
+    
+    /// Create a new HOTP instance with a custom alphabet
+    pub fn with_alphabet(secret: Vec<u8>, digits: usize, alphabet: String) -> Self {
         Self {
             secret,
             digits,
@@ -31,7 +40,7 @@ impl Hotp {
         let counter_bytes = counter.to_be_bytes();
         
         // Create HMAC instance
-        let mut mac = HmacSha256::new_from_slice(&self.secret)
+        let mut mac = HmacSha1::new_from_slice(&self.secret)
             .map_err(|e| AppError::InternalError(format!("HMAC error: {}", e)))?;
         
         // Update HMAC with counter bytes

@@ -1,54 +1,56 @@
-# Build stage
-FROM rust:1.81-slim AS builder
+# ---- Build Stage ----
+FROM rust:1.86 as builder
 
-WORKDIR /usr/src/otp
+# Set working directory
+WORKDIR /usr/src/otp_server
 
-# Copy over the manifest
-COPY Cargo.toml ./
+# Install build dependencies (if any, e.g., openssl)
+# RUN apt-get update && apt-get install -y --no-install-recommends openssl libssl-dev pkg-config && rm -rf /var/lib/apt/lists/*
+# Note: Uncomment and adjust the above line if your project has C dependencies like OpenSSL
 
-# Create a dummy main.rs to build dependencies
-RUN mkdir -p src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build --release && \
-    rm -rf src
+# Copy manifests
+COPY Cargo.toml Cargo.lock* ./
+# Build dependencies only to leverage Docker cache
+# Create a dummy main.rs to allow building dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release
+RUN rm -rf src
 
-# Copy the actual source code
-COPY . .
+# Copy source code
+COPY src ./src
 
 # Build the application
+# Clean previous dummy build artifacts
+RUN rm -f target/release/deps/otp*
 RUN cargo build --release
 
-# Runtime stage
-FROM debian:bookworm-slim
+# ---- Runtime Stage ----
+FROM debian:12-slim
 
-# Install necessary runtime dependencies and debugging tools
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates strace procps && \
-    rm -rf /var/lib/apt/lists/*
-
+# Set working directory
 WORKDIR /app
 
-# Copy the binary from the builder stage
-COPY --from=builder /usr/src/otp/target/release/otp /app/otp
+# Create a non-root user and group
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Create a non-root user to run the application
-RUN useradd -m otp-user && \
-    chown -R otp-user:otp-user /app
+# Install runtime dependencies (if any, e.g., ca-certificates for HTTPS)
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 
-USER otp-user
+# Copy the compiled binary from the build stage
+COPY --from=builder /usr/src/otp_server/target/release/otp ./otp
 
-# Expose the port the server listens on
+# Copy the start script
+COPY start-server.sh ./start-server.sh
+RUN chmod +x ./start-server.sh
+
+# Ensure the binary is executable by the appuser
+RUN chown appuser:appuser ./otp ./start-server.sh
+
+# Switch to the non-root user
+USER appuser
+
+# Expose the application port
 EXPOSE 8080
 
-# Set environment variables
-ENV SERVER_HOST=0.0.0.0
-ENV SERVER_PORT=8080
-ENV LOG_LEVEL=info
-ENV OTP_LENGTH=6
-ENV OTP_EXPIRY_SECONDS=30
-ENV STORAGE_CLEANUP_INTERVAL=60
-ENV STORAGE_TYPE=redis
-ENV REDIS_URL=redis://redis:6379
-
-# Run the application with proper output
-CMD ["./otp"]
+# Set the entrypoint to the start script
+CMD ["./start-server.sh"]
