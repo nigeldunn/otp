@@ -2,6 +2,7 @@
 pub mod handlers;
 pub mod routes;
 
-// Re-export commonly used items
-pub use handlers::*;
-pub use routes::*;
+// Re-export necessary items
+// pub use handlers::*; // Not directly used in main.rs
+#[allow(unused_imports)] // Used indirectly via main.rs
+pub use routes::configure_routes;

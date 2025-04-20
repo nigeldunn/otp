@@ -22,6 +22,7 @@ impl Totp {
     }
 
     /// Set the allowed clock skew in time steps
+    #[allow(dead_code)] // Used in tests
     pub fn with_skew(mut self, skew: u64) -> Self {
         self.skew = skew;
         self
@@ -32,7 +33,7 @@ impl Totp {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_secs())
-            .map_err(|e| AppError::InternalError(format!("Time error: {}", e)))
+            .map_err(|e| AppError::Internal(format!("Time error: {}", e))) // Corrected again to AppError::Internal
     }
 
     /// Calculate the time counter based on the timestamp
@@ -48,6 +49,7 @@ impl Totp {
     }
 
     /// Generate a TOTP code for a specific timestamp
+    #[allow(dead_code)] // Used in tests
     pub fn generate_at(&self, timestamp: u64) -> AppResult<String> {
         let counter = self.calculate_counter(timestamp);
         self.hotp.generate(counter)
@@ -62,14 +64,14 @@ impl Totp {
     /// Verify a TOTP code against a specific timestamp
     pub fn verify_at(&self, code: &str, timestamp: u64) -> AppResult<bool> {
         let counter = self.calculate_counter(timestamp);
-        
+
         // Check current counter and allowed skew
         for i in counter.saturating_sub(self.skew)..=counter.saturating_add(self.skew) {
             if self.hotp.verify(code, i)? {
                 return Ok(true);
             }
         }
-        
+
         Ok(false)
     }
 }
@@ -92,16 +94,16 @@ mod tests {
     fn test_totp_generation() {
         let secret = b"12345678901234567890".to_vec();
         let totp = Totp::new(secret.clone(), 6, 30);
-        
+
         // Test with specific timestamps
         let test_vectors = [
-            (59, "287082"),          // 1970-01-01 00:00:59
-            (1111111109, "081804"),  // 2005-03-18 01:58:29
-            (1111111111, "050471"),  // 2005-03-18 01:58:31
-            (1234567890, "005924"),  // 2009-02-13 23:31:30
-            (2000000000, "279037"),  // 2033-05-18 03:33:20
+            (59, "287082"),         // 1970-01-01 00:00:59
+            (1111111109, "081804"), // 2005-03-18 01:58:29
+            (1111111111, "050471"), // 2005-03-18 01:58:31
+            (1234567890, "005924"), // 2009-02-13 23:31:30
+            (2000000000, "279037"), // 2033-05-18 03:33:20
         ];
-        
+
         for (timestamp, expected) in test_vectors.iter() {
             let result = totp.generate_at(*timestamp).unwrap();
             assert_eq!(result, *expected);
@@ -113,16 +115,16 @@ mod tests {
         // Test basic verification
         let secret1 = b"12345678901234567890".to_vec();
         let totp = Totp::new(secret1, 6, 30);
-        
+
         assert!(totp.verify_at("287082", 59).unwrap());
         assert!(totp.verify_at("081804", 1111111109).unwrap());
         assert!(!totp.verify_at("081804", 1111111169).unwrap()); // 60 seconds later, outside default skew
-        
+
         // Test with skew
         let secret2 = b"12345678901234567890".to_vec();
         let totp_with_skew = Totp::new(secret2, 6, 30).with_skew(1);
         assert!(totp_with_skew.verify_at("081804", 1111111139).unwrap()); // 30 seconds later, within skew
-        
+
         // Test without skew
         let secret3 = b"12345678901234567890".to_vec();
         let totp_no_skew = Totp::new(secret3, 6, 30).with_skew(0);

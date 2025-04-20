@@ -41,15 +41,15 @@ pub async fn generate_secret() -> AppResult<HttpResponse> {
     let mut rng = rand::thread_rng();
     let mut secret = vec![0u8; 20];
     rng.fill(&mut secret[..]);
-    
+
     // Encode the secret in base32 for easy sharing
     let secret_base32 = BASE32.encode(&secret);
-    
+
     let response = GenerateSecretResponse {
         secret: hex::encode(&secret),
         secret_base32,
     };
-    
+
     Ok(HttpResponse::Ok().json(response))
 }
 
@@ -60,23 +60,19 @@ pub async fn generate_otp(
 ) -> AppResult<HttpResponse> {
     // Decode the secret from hex
     let secret = hex::decode(&req.secret)
-        .map_err(|e| AppError::ValidationError(format!("Invalid secret: {}", e)))?;
-    
+        .map_err(|e| AppError::Validation(format!("Invalid secret: {}", e)))?; // Updated to AppError::Validation
+
     // Create a TOTP instance
-    let totp = Totp::new(
-        secret,
-        config.otp_length,
-        config.otp_expiry_seconds,
-    );
-    
+    let totp = Totp::new(secret, config.otp_length, config.otp_expiry_seconds);
+
     // Generate the OTP
     let otp = totp.generate()?;
-    
+
     let response = GenerateOtpResponse {
         otp,
         expires_in: config.otp_expiry_seconds,
     };
-    
+
     Ok(HttpResponse::Ok().json(response))
 }
 
@@ -87,37 +83,37 @@ pub async fn verify_otp(
     req: web::Json<VerifyOtpRequest>,
 ) -> AppResult<HttpResponse> {
     // Check if OTP has been used before
-    let is_used = storage.is_used(&req.otp).await
-        .map_err(|e| AppError::InternalError(format!("Storage error: {}", e)))?;
-    
+    let is_used = storage
+        .is_used(&req.otp)
+        .await
+        .map_err(|e| AppError::Internal(format!("Storage error: {}", e)))?; // Updated to AppError::Internal
+
     if is_used {
         log::warn!("OTP reuse attempt detected: {}", req.otp);
         return Ok(HttpResponse::Ok().json(VerifyOtpResponse { valid: false }));
     }
-    
+
     // Decode the secret from hex
     let secret = hex::decode(&req.secret)
-        .map_err(|e| AppError::ValidationError(format!("Invalid secret: {}", e)))?;
-    
+        .map_err(|e| AppError::Validation(format!("Invalid secret: {}", e)))?; // Updated to AppError::Validation
+
     // Create a TOTP instance
-    let totp = Totp::new(
-        secret,
-        config.otp_length,
-        config.otp_expiry_seconds,
-    );
-    
+    let totp = Totp::new(secret, config.otp_length, config.otp_expiry_seconds);
+
     // Verify the OTP
     let valid = totp.verify(&req.otp)?;
-    
+
     // If OTP is valid, mark it as used
     if valid {
-        storage.mark_used(&req.otp, config.otp_expiry_seconds).await
-            .map_err(|e| AppError::InternalError(format!("Storage error: {}", e)))?;
+        storage
+            .mark_used(&req.otp, config.otp_expiry_seconds)
+            .await
+            .map_err(|e| AppError::Internal(format!("Storage error: {}", e)))?; // Updated to AppError::Internal
         log::debug!("OTP marked as used: {}", req.otp);
     }
-    
+
     let response = VerifyOtpResponse { valid };
-    
+
     Ok(HttpResponse::Ok().json(response))
 }
 

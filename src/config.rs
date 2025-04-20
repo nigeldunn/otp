@@ -5,10 +5,12 @@ use std::env;
 pub struct Config {
     pub server_host: String,
     pub server_port: u16,
+    #[allow(dead_code)]
+    // Field is read from env, which is used by logger, but field itself isn't directly used post-init
     pub log_level: String,
     pub otp_length: usize,
     pub otp_expiry_seconds: u64,
-    pub storage_cleanup_interval: u64,
+    // pub storage_cleanup_interval: u64, // Removed unused field
     pub storage_type: StorageType,
     pub redis_url: String,
 }
@@ -26,7 +28,7 @@ impl Default for Config {
             log_level: "info".to_string(),
             otp_length: 6,
             otp_expiry_seconds: 30,
-            storage_cleanup_interval: 60, // Clean up every minute
+            // storage_cleanup_interval: 60, // Removed unused field
             storage_type: StorageType::Redis,
             redis_url: "redis://127.0.0.1:6379".to_string(),
         }
@@ -51,15 +53,16 @@ impl Config {
             .unwrap_or_else(|_| "30".to_string())
             .parse()
             .unwrap_or(30);
-        let storage_cleanup_interval = env::var("STORAGE_CLEANUP_INTERVAL")
-            .unwrap_or_else(|_| "60".to_string())
-            .parse()
-            .unwrap_or(60);
-        
+        // let storage_cleanup_interval = env::var("STORAGE_CLEANUP_INTERVAL") // Removed unused field
+        //     .unwrap_or_else(|_| "60".to_string())
+        //     .parse()
+        //     .unwrap_or(60);
+
         // Always use Redis storage
         let storage_type = StorageType::Redis;
-        
-        let redis_url = env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+
+        let redis_url =
+            env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
         Self {
             server_host,
@@ -67,7 +70,7 @@ impl Config {
             log_level,
             otp_length,
             otp_expiry_seconds,
-            storage_cleanup_interval,
+            // storage_cleanup_interval, // Removed unused field
             storage_type,
             redis_url,
         }
