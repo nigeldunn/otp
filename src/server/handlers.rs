@@ -38,7 +38,8 @@ pub struct VerifyOtpResponse {
 
 /// Generate a new random secret
 pub async fn generate_secret() -> AppResult<HttpResponse> {
-    let mut rng = rand::thread_rng();
+    // Use recommended way to get thread-local RNG
+    let mut rng = rand::rngs::ThreadRng::default(); 
     let mut secret = vec![0u8; 20];
     rng.fill(&mut secret[..]);
 

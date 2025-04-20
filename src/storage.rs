@@ -52,10 +52,14 @@ impl RedisStore {
                 max_retries
             );
 
-            match client.get_async_connection().await {
+            // Use multiplexed connection as recommended
+            match client.get_multiplexed_async_connection().await {
                 Ok(mut conn) => {
                     // Test connection with PING
-                    match redis::cmd("PING").query_async::<_, ()>(&mut conn).await {
+                    // Explicitly type the result variable
+                    let ping_result: Result<(), redis::RedisError> = 
+                        redis::cmd("PING").query_async(&mut conn).await;
+                    match ping_result {
                         Ok(_) => {
                             log::info!("Successfully connected to Redis");
                             return Ok(Self { client });
@@ -98,9 +102,10 @@ impl RedisStore {
 #[async_trait::async_trait]
 impl OtpStore for RedisStore {
     async fn mark_used(&self, otp: &str, expiry_seconds: u64) -> Result<(), String> {
+        // Use multiplexed connection
         let mut conn = self
             .client
-            .get_async_connection()
+            .get_multiplexed_async_connection()
             .await
             .map_err(|e| format!("Failed to connect to Redis: {}", e))?;
 
@@ -117,9 +122,10 @@ impl OtpStore for RedisStore {
     }
 
     async fn is_used(&self, otp: &str) -> Result<bool, String> {
+        // Use multiplexed connection
         let mut conn = self
             .client
-            .get_async_connection()
+            .get_multiplexed_async_connection()
             .await
             .map_err(|e| format!("Failed to connect to Redis: {}", e))?;
 
