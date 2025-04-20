@@ -57,7 +57,7 @@ impl RedisStore {
                 Ok(mut conn) => {
                     // Test connection with PING
                     // Explicitly type the result variable
-                    let ping_result: Result<(), redis::RedisError> = 
+                    let ping_result: Result<(), redis::RedisError> =
                         redis::cmd("PING").query_async(&mut conn).await;
                     match ping_result {
                         Ok(_) => {

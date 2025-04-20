@@ -90,4 +90,93 @@ else
   echo -e "\nInvalid OTP Rejection: ${RED}Failed${NC}"
 fi
 
-echo -e "\n${BLUE}Test Complete${NC}"
+echo ""
+echo "================================"
+echo -e "${BLUE}Testing HOTP Endpoints${NC}"
+echo "================================"
+
+# Define a counter for HOTP
+COUNTER=1
+
+# Generate an HOTP
+echo -e "\n${BLUE}Generating HOTP (Counter: $COUNTER)${NC}"
+HOTP_GEN_RESPONSE=$(curl -s -X POST "${BASE_URL}/hotp/generate" \
+  -H "Content-Type: application/json" \
+  -d "{\"secret\": \"$SECRET\", \"counter\": $COUNTER}")
+echo "$HOTP_GEN_RESPONSE" | jq
+
+# Extract HOTP from response
+HOTP=$(echo "$HOTP_GEN_RESPONSE" | jq -r '.otp')
+
+echo -e "\nHOTP: ${GREEN}$HOTP${NC}"
+
+# Verify the HOTP
+echo -e "\n${BLUE}Verifying HOTP (Counter: $COUNTER)${NC}"
+HOTP_VERIFY_RESPONSE=$(curl -s -X POST "${BASE_URL}/hotp/verify" \
+  -H "Content-Type: application/json" \
+  -d "{\"secret\": \"$SECRET\", \"otp\": \"$HOTP\", \"counter\": $COUNTER}")
+echo "$HOTP_VERIFY_RESPONSE" | jq
+
+# Check if HOTP is valid
+HOTP_VALID=$(echo "$HOTP_VERIFY_RESPONSE" | jq -r '.valid')
+if [ "$HOTP_VALID" = "true" ]; then
+  echo -e "\nHOTP Verification: ${GREEN}Success${NC}"
+else
+  echo -e "\nHOTP Verification: ${RED}Failed${NC}"
+fi
+
+# Try to reuse the same HOTP + Counter
+echo -e "\n${BLUE}Testing HOTP Reuse Prevention (Counter: $COUNTER)${NC}"
+HOTP_REUSE_RESPONSE=$(curl -s -X POST "${BASE_URL}/hotp/verify" \
+  -H "Content-Type: application/json" \
+  -d "{\"secret\": \"$SECRET\", \"otp\": \"$HOTP\", \"counter\": $COUNTER}")
+echo "$HOTP_REUSE_RESPONSE" | jq
+
+# Check if HOTP reuse is rejected
+HOTP_REUSE_VALID=$(echo "$HOTP_REUSE_RESPONSE" | jq -r '.valid')
+if [ "$HOTP_REUSE_VALID" = "false" ]; then
+  echo -e "\nHOTP Reuse Prevention: ${GREEN}Success${NC}"
+else
+  echo -e "\nHOTP Reuse Prevention: ${RED}Failed${NC}"
+fi
+
+# Test with invalid HOTP
+echo -e "\n${BLUE}Testing with Invalid HOTP (Counter: $COUNTER)${NC}"
+INVALID_HOTP="invalid"
+INVALID_HOTP_VERIFY_RESPONSE=$(curl -s -X POST "${BASE_URL}/hotp/verify" \
+  -H "Content-Type: application/json" \
+  -d "{\"secret\": \"$SECRET\", \"otp\": \"$INVALID_HOTP\", \"counter\": $COUNTER}")
+echo "$INVALID_HOTP_VERIFY_RESPONSE" | jq
+
+# Check if invalid HOTP is rejected
+INVALID_HOTP_VALID=$(echo "$INVALID_HOTP_VERIFY_RESPONSE" | jq -r '.valid')
+if [ "$INVALID_HOTP_VALID" = "false" ]; then
+  echo -e "\nInvalid HOTP Rejection: ${GREEN}Success${NC}"
+else
+  echo -e "\nInvalid HOTP Rejection: ${RED}Failed${NC}"
+fi
+
+# Test with different counter (should be valid if OTP matches that counter, but reuse prevention applies per counter)
+COUNTER2=2
+echo -e "\n${BLUE}Generating HOTP (Counter: $COUNTER2)${NC}"
+HOTP_GEN2_RESPONSE=$(curl -s -X POST "${BASE_URL}/hotp/generate" \
+  -H "Content-Type: application/json" \
+  -d "{\"secret\": \"$SECRET\", \"counter\": $COUNTER2}")
+echo "$HOTP_GEN2_RESPONSE" | jq
+HOTP2=$(echo "$HOTP_GEN2_RESPONSE" | jq -r '.otp')
+echo -e "\nHOTP2: ${GREEN}$HOTP2${NC}"
+
+echo -e "\n${BLUE}Verifying HOTP (Counter: $COUNTER2)${NC}"
+HOTP_VERIFY2_RESPONSE=$(curl -s -X POST "${BASE_URL}/hotp/verify" \
+  -H "Content-Type: application/json" \
+  -d "{\"secret\": \"$SECRET\", \"otp\": \"$HOTP2\", \"counter\": $COUNTER2}")
+echo "$HOTP_VERIFY2_RESPONSE" | jq
+HOTP2_VALID=$(echo "$HOTP_VERIFY2_RESPONSE" | jq -r '.valid')
+if [ "$HOTP2_VALID" = "true" ]; then
+  echo -e "\nHOTP Verification (Counter 2): ${GREEN}Success${NC}"
+else
+  echo -e "\nHOTP Verification (Counter 2): ${RED}Failed${NC}"
+fi
+
+
+echo -e "\n${BLUE}All Tests Complete${NC}"

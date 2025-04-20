@@ -1,17 +1,14 @@
 # OTP Server
 
-[!CAUTION]
-This server was built entirely by AI. I have not yet verified how it has implemented the RFCs yet. Use at your own risk!
-
 A horizontally scalable OTP (One-Time Password) server written in Rust, following the [RFC4226](https://datatracker.ietf.org/doc/html/rfc4226) (HOTP) and [RFC6238](https://datatracker.ietf.org/doc/html/rfc6238) (TOTP) standards.
 
 ## Features
 
-- Generates 6-character long, alphanumeric one-time passwords
-- Supports both HOTP (HMAC-based One-Time Password) and TOTP (Time-based One-Time Password)
-- Prevents OTP reuse with an in-memory storage mechanism
+- Generates 6-character long, numeric one-time passwords (configurable length)
+- Supports both TOTP (Time-based) and HOTP (Counter-based) via separate API endpoints
+- Prevents OTP reuse using Redis as the storage backend (tracks TOTP codes and HOTP code/counter pairs)
 - RESTful API for easy integration
-- Horizontally scalable architecture
+- Horizontally scalable architecture (requires Redis)
 - Configurable via environment variables
 
 ## Getting Started
@@ -26,7 +23,7 @@ A horizontally scalable OTP (One-Time Password) server written in Rust, followin
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/otp-server.git
+   git clone https://github.com/nigeldunn/otp-server.git
    cd otp-server
    ```
 
@@ -59,7 +56,7 @@ A horizontally scalable OTP (One-Time Password) server written in Rust, followin
 
 ### Docker Compose Deployment
 
-For a complete deployment with Redis for OTP storage:
+Requires Docker Compose. This setup includes the OTP server and the required Redis instance:
 
 1. Start the services:
    ```
@@ -84,8 +81,8 @@ For a complete deployment with Redis for OTP storage:
 The script automatically detects whether you have the standalone `docker-compose` command or the newer `docker compose` plugin installed, making it compatible with all Docker installations.
 
 The Docker Compose setup includes:
-- OTP server with Redis storage enabled
-- Redis instance with data persistence
+- OTP server (configured to use the Redis service)
+- Redis instance 
 - Proper networking between services
 
 5. Test the Docker Compose deployment:
@@ -124,27 +121,8 @@ The server can be configured using environment variables or a `.env` file:
 - `SERVER_PORT`: Port to listen on (default: 8080)
 - `LOG_LEVEL`: Logging level (default: info)
 - `OTP_LENGTH`: Length of generated OTP codes (default: 6)
-- `OTP_EXPIRY_SECONDS`: Validity period of OTP codes in seconds (default: 30)
-- `STORAGE_CLEANUP_INTERVAL`: Interval in seconds to clean up expired OTPs (default: 60)
-- `STORAGE_TYPE`: Storage backend to use (options: inmemory, redis; default: inmemory)
-- `REDIS_URL`: Redis connection URL (default: redis://127.0.0.1:6379)
-
-### Storage Options
-
-The OTP server supports two storage backends for tracking used OTPs:
-
-1. **In-Memory Storage** (default)
-   - Simple and fast, but not suitable for horizontal scaling
-   - OTPs are stored in memory and not shared between instances
-   - Good for development or single-instance deployments
-
-2. **Redis Storage**
-   - Recommended for production and multi-instance deployments
-   - OTPs are stored in Redis and shared between all instances
-   - Provides true "one-time" behavior in a distributed environment
-   - Automatically handles expiration of used OTPs
-
-When deploying with Kubernetes, the Helm chart includes a Redis instance by default.
+- `OTP_EXPIRY_SECONDS`: Validity period of OTP codes in seconds (default: 30). Used OTPs expire in Redis after this duration.
+- `REDIS_URL`: Redis connection URL (default: redis://127.0.0.1:6379). This is required for the server to function.
 
 ## API Endpoints
 
@@ -172,7 +150,7 @@ Generates a new random secret for OTP generation.
 }
 ```
 
-### Generate OTP
+### Generate TOTP (Time-Based)
 
 ```
 POST /api/otp/generate
@@ -193,7 +171,7 @@ POST /api/otp/generate
 }
 ```
 
-### Verify OTP
+### Verify TOTP (Time-Based)
 
 ```
 POST /api/otp/verify
@@ -204,6 +182,49 @@ POST /api/otp/verify
 {
   "secret": "hex_encoded_secret",
   "otp": "otp_code_to_verify"
+}
+```
+
+**Response:**
+```json
+{
+  "valid": true
+}
+```
+
+### Generate HOTP (Counter-Based)
+
+```
+POST /api/hotp/generate
+```
+
+**Request:**
+```json
+{
+  "secret": "hex_encoded_secret",
+  "counter": 123 
+}
+```
+
+**Response:**
+```json
+{
+  "otp": "generated_hotp_code"
+}
+```
+
+### Verify HOTP (Counter-Based)
+
+```
+POST /api/hotp/verify
+```
+
+**Request:**
+```json
+{
+  "secret": "hex_encoded_secret",
+  "otp": "hotp_code_to_verify",
+  "counter": 123
 }
 ```
 
