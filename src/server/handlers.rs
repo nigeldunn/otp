@@ -316,8 +316,8 @@ mod tests {
         let body: VerifyOtpResponse = serde_json::from_slice(&body_bytes).unwrap();
         assert!(body.valid);
 
-        // Verify it was marked as used
-        let reuse_key = format!("hotp:{}:{}", otp, counter);
+        // Verify it was marked as used (using the new key format)
+        let reuse_key = format!("hotp-{}-{}", otp, counter);
         assert!(storage.is_used(&reuse_key).await.unwrap());
     }
 
@@ -343,8 +343,8 @@ mod tests {
         let body: VerifyOtpResponse = serde_json::from_slice(&body_bytes).unwrap();
         assert!(!body.valid);
 
-        // Verify it was NOT marked as used
-        let reuse_key = format!("hotp:{}:{}", otp, counter);
+        // Verify it was NOT marked as used (using the new key format)
+        let reuse_key = format!("hotp-{}-{}", otp, counter);
         assert!(!storage.is_used(&reuse_key).await.unwrap());
     }
 
