@@ -363,16 +363,22 @@ mod tests {
         };
 
         // First verification (should be valid)
-        let resp1 = verify_hotp(config.clone(), storage.clone(), web::Json(req_payload.clone()))
-            .await
-            .unwrap();
+        let resp1 = verify_hotp(
+            config.clone(),
+            storage.clone(),
+            web::Json(req_payload.clone()),
+        )
+        .await
+        .unwrap();
         assert_eq!(resp1.status(), StatusCode::OK);
         let body_bytes1 = to_bytes(resp1.into_body()).await.unwrap();
         let body1: VerifyOtpResponse = serde_json::from_slice(&body_bytes1).unwrap();
         assert!(body1.valid);
 
         // Second verification (should be invalid due to reuse)
-        let resp2 = verify_hotp(config, storage, web::Json(req_payload)).await.unwrap();
+        let resp2 = verify_hotp(config, storage, web::Json(req_payload))
+            .await
+            .unwrap();
         assert_eq!(resp2.status(), StatusCode::OK);
         let body_bytes2 = to_bytes(resp2.into_body()).await.unwrap();
         let body2: VerifyOtpResponse = serde_json::from_slice(&body_bytes2).unwrap();
@@ -396,7 +402,8 @@ mod tests {
 
         // 1. Generate Secret (to get a valid secret for testing)
         let req_secret = test::TestRequest::post().uri("/api/secret").to_request();
-        let resp_secret: GenerateSecretResponse = test::call_and_read_body_json(&app, req_secret).await;
+        let resp_secret: GenerateSecretResponse =
+            test::call_and_read_body_json(&app, req_secret).await;
         let secret_hex = resp_secret.secret; // Use the generated secret
 
         // 2. Generate HOTP
