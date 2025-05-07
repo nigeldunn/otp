@@ -15,7 +15,7 @@ rand = "0.9"
 hex = "0.4"
 
 # Storage
-redis = { version = "0.29", features = ["tokio-comp"] }
+redis = { version = "0.30", features = ["tokio-comp"] }
 # dashmap = "5.5" # Moved to dev-dependencies
 async-trait = "0.1"
 
