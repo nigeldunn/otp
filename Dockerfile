@@ -1,5 +1,5 @@
 # ---- Build Stage ----
-FROM rust:1.86 as builder
+FROM rust:1.87 as builder
 
 # Set working directory
 WORKDIR /usr/src/otp_server
