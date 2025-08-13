@@ -25,7 +25,7 @@ RUN rm -f target/release/deps/otp*
 RUN cargo build --release
 
 # ---- Runtime Stage ----
-FROM debian:12-slim
+FROM debian:13-slim
 
 # Set working directory
 WORKDIR /app
